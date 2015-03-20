@@ -1,0 +1,59 @@
+/*
+spoj—7001Visible Lattice Points（莫比乌斯）
+题意：给定n(1<= n <= 1000000)，求满足gcd（a, b, c） = 1 (0 <= a, b, c <= n) 的(a, b, c)的个数。
+分析：先说一下莫比乌斯反演：
+      莫比乌斯反演是用来简化运算的：如果F(n) = sigma(f(d)), d | n,F(n)已知， 如何求f(n)?
+      莫比乌斯反演公式 ：f(k) = sigma(mu(d) * F(k / d)), d | k。
+      更常用的形式(在一定范围内) ：f(k) = sigma(mu(d | k) * F(d)), d | k;
+      其中mu(k) =  1   (k = 1)
+                          (-1)^t (k = p1 *p2 * …… *pt, pi互不相同)
+                          0   （k = 其他）
+      记g(k) 为gcd(a, b, c) = k 的（a, b, c）的个数，f(k) 为 k | gcd(a, b, c)的（a, b, c）的个数。
+      则f(k) = sigma(g(d)) ,d | k,
+      由莫比乌斯反演可知g(k) = sigma(mu[d / k] * f(d)), k | d。
+      f(k)是容易算出来的：f(k) = (n / k) * (n / k) * (n / k)
+      ans = g(1) = sigma(mu[d / 1] * f(d)), 1 | d, 即d = 1, 2 ……n
+*/
+#include <stdio.h>
+#include <string.h>
+#define maxn 1000010
+int mu[maxn], prim[maxn];
+
+void moblus()
+{
+     memset(prim, 0, sizeof(prim));
+     for(int i = 1; i < maxn; i++){
+          mu[i] = 1;
+     }
+     for(int i = 2; i < maxn; i++)
+     {
+          if(prim[i] == 0){
+               for(int j = i; j < maxn; j += i)
+               {
+                    prim[j] = 1;
+                    if(j % (i * i) == 0){
+                         mu[j] = 0;
+                    }else{
+                         mu[j] *= -1;
+                    }
+               }
+          }
+     }
+     return ;
+}
+
+int main()
+{
+     int n, T;
+     moblus();
+     scanf("%d", &T);
+     while(T--){
+          scanf("%d", &n);
+          long long ans = 3;
+          for(int i = 1; i <= n; i++){
+               ans += (long long)mu[i] * (n / i) * (n / i) * ((n / i) + 3);
+          }
+          printf("%lld\n", ans);
+     }
+     return 0;
+}
