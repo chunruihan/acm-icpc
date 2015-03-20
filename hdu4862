@@ -1,0 +1,182 @@
+
+/*
+hdu-4862-2014 Multi-University Training Contest 1【最小费用最大流】
+
+题意：给定n*m的格子，每个格子里有一个0-9中的数字，你初始的能量值为0，你可以操作K次，每次操作先任选一个没有走过的格子为起点然后想下 或向右跳，消耗的能量为两个格子的曼顿距离，如果两个格子的数字相同，则你可以获得这个数字值的能量，每次操作可以跳任意次，问K次操作后能量的最大值， 如果K次操作不能把每个格子都一遍则输出 -1。
+
+建图：构造二部图，X部有N*M个节点，源点向X部每个节点连一条边，流量1，费用0，Y部有N*M个节点，每个节点向汇点连一条边，流量1，费用0，如果X部的节点x可以在一步之内到达Y部的节点y，那么就连边x->y，费用为从x格子到y格子的花费能量减去得到的能量，流量1，再在X部增加一个新的节点，表示可以从任意节点出发K次，源点向其连边，费用0，流量K，这个点向Y部每个点连边，费用0，流量1。
+
+最后这个图跑最小费用最大流，如果满流就是存在解，反之不存在，最小费用的相反数就是可以获得的最大能量。
+
+这个图为了实现K次操作那个地方太神奇了！！
+*/
+#include <stdio.h>
+#include <string.h>
+
+char mp[15][15];
+struct Node{
+     int u, v, f, c, next;
+}node[22222];
+
+const int inf = (1<<30);
+int head[222], tot;
+int d[222], pre[222];
+bool vis[222];
+int q[22222];
+int n, m, K;
+
+void init()
+{
+     memset(head, -1, sizeof(head));
+     tot = 0;
+}
+
+void add(int u, int v, int f, int c)
+{
+     node[tot].u = u;
+     node[tot].v = v;
+     node[tot].f = f;
+     node[tot].c = c;
+     node[tot].next = head[u];
+     head[u] = tot;
+     tot++;
+     node[tot].u = v;
+     node[tot].v = u;
+     node[tot].f = 0;
+     node[tot].c = -c;
+     node[tot].next = head[v];
+     head[v] = tot;
+     tot++;
+}
+
+ int SPFA()
+{
+    int l,r;
+    memset(pre,-1,sizeof(pre));
+    memset(vis,0,sizeof(vis));
+    for(int i = 0; i <= 2*n*m+5; i++) d[i]=inf;
+    d[2*n*m]=0;
+    l=0;r=0;
+    q[r++]=2*n*m;
+    vis[2*n*m]=1;
+    while(l<r)
+    {
+        int u=q[l++];
+        vis[u]=0;
+        for(int j=head[u];j!=-1;j=node[j].next)
+        {
+            int v=node[j].v;
+            if(node[j].f>0&&d[u]+node[j].c<d[v])
+            {
+                d[v]=d[u]+node[j].c;
+                pre[v]=j;
+                if(!vis[v])
+                {
+                    vis[v]=1;
+                    q[r++]=v;
+                }
+            }
+        }
+    }
+
+    if(d[n*m*2+2] == inf)
+        return 0;
+    return 1;
+}
+
+int cas;
+
+void MCMF()
+{
+    int flow=0, ans = 0;
+    while(SPFA())
+    {
+        int u=2*n*m+2;
+        int mini=inf;
+        while(u!=2 * n * m)
+        {
+            if(node[pre[u]].f<mini)
+            {
+                 mini=node[pre[u]].f;
+            }
+            u=node[pre[u]].u;
+        }
+        flow+=mini;
+        u=2*n*m+2;
+        while(u!=2*n*m)
+        {
+            node[pre[u]].f-=mini;
+            node[pre[u]^1].f+=mini;
+            u=node[pre[u]].u;
+        }
+        ans += mini * d[2*n*m+2];
+    }
+    if(flow == n * m){
+         printf("Case %d : %d\n", ++cas, -ans);
+    }else{
+         printf("Case %d : -1\n", ++cas);
+    }
+}
+
+int main()
+{
+     int T;
+     cas = 0;
+     scanf("%d", &T);
+     while(T--)
+     {
+          scanf("%d%d%d", &n, &m, &K);
+          for(int i = 0; i < n; i++)
+          {
+               scanf("%s", mp[i]);
+          }
+
+          init();
+
+          int u, v, c;
+          for(int i = 0; i < n; i++)
+          {
+               for(int j = 0; j < m; j++)
+               {
+                    u = i * m + j;
+                    for(int k = j + 1; k < m; k++)
+                    {
+                         v = n * m + i * m + k;
+                         c = k - j - 1;
+                         c = -c;
+                         if(mp[i][j] == mp[i][k])
+                         {
+                              c += mp[i][j] - '0';
+                         }
+                         add(u, v, 1, -c);
+                    }
+                    for(int k = i + 1; k < n; k++)
+                    {
+                         v = n * m + k * m + j;
+                         c = k - i - 1;
+                         c = -c;
+                         if(mp[i][j] == mp[k][j])
+                         {
+                              c += mp[i][j] - '0';
+                         }
+                         add(u, v, 1, -c);
+                    }
+               }
+          }
+
+          for(int i = 0; i < n; i++)
+          {
+               for(int j = 0; j < m; j++)
+               {
+                    add(2 * n * m, i * m + j, 1, 0);
+                    add(n * m + i * m + j, 2 * n * m + 2, 1, 0);
+                    add(2 * n * m + 1, n * m + i * m + j, 1, 0);
+               }
+          }
+
+          add(2 * n * m, 2 * n * m + 1, K, 0);
+
+          MCMF();
+     }
+     return 0;
+}
