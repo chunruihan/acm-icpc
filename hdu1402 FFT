@@ -1,0 +1,124 @@
+/*
+hdu1402--大数相乘(FFT)
+FFT之所以奇妙是因为它充分利用了旋转因子的周期性和对称性，加快了计算时间。
+从叶子节点到根计算而不是从根节点递归求解大大节省了空间。
+*/
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+#include <algorithm>
+using namespace std;
+#define maxn 50050
+#define PI acos(-1.0)
+#define eps 0.001
+char str[maxn];
+
+struct Complex{
+     double a, b;
+
+     Complex(double _a=0.0,double _b=0.0):a(_a),b(_b){}
+
+     Complex operator + (const Complex &c) const{
+          return Complex(a + c.a, b + c.b);
+     }
+
+     Complex operator - (const Complex &c) const{
+          return Complex(a - c.a, b - c.b);
+     }
+     Complex operator * (const Complex &c) const{
+          return Complex(a * c.a - b * c.b, a * c.b + b * c.a);
+     }
+};
+
+Complex x[maxn * 4], y[maxn * 4];
+
+void change(Complex A[] , int len) {
+    for (int i = 1 , j = len / 2 ; i < len -1 ; i ++) {
+        if (i < j) swap(A[i], A[j]);
+        int k = len / 2;
+        while (j >= k) {
+            j -= k;
+            k /= 2;
+        }
+        if(j < k) j += k;
+    }
+    return ;
+}
+
+void FFT(Complex A[], int n, int flag){
+     change(A, n);
+     for(int h = 2; h <= n; h <<= 1){
+          Complex wn = Complex(cos(-flag * 2 * PI / h), sin(-flag * 2 * PI / h));
+          for(int i = 0; i < n; i += h){
+               Complex w = Complex(1, 0);
+               for(int j = i; j < i + h / 2; j++)
+               {
+                    Complex s = Complex(A[j].a, A[j].b);
+                    Complex t = w * A[j + h / 2];
+                    A[j] = s + t;
+                    A[j + h / 2] = s - t;
+                    w = w * wn;
+               }
+          }
+     }
+     if(flag == -1){
+          for(int i = 0; i < n; i++)
+          {
+               A[i].a /= n;
+          }
+     }
+     return ;
+}
+
+int ans[maxn * 4];
+
+int main()
+{
+     while(scanf("%s", str) != EOF)
+     {
+          int len1 = strlen(str);
+
+          for(int i = 0; i < len1; i++){
+               x[i] = Complex(str[len1 - 1 - i] - '0', 0);
+          }
+
+          scanf("%s", str);
+          int len2 = strlen(str);
+
+          for(int i = 0; i < len2; i++){
+               y[i] = Complex(str[len2 - 1 - i] - '0', 0);
+          }
+
+          int l1 = 1, l2 = 1;
+          while(l1 < len1 * 2){l1 <<= 1;}
+          while(l2 < len2 * 2){l2 <<= 1;}
+          int l = max(l1, l2);
+          for(int i = len1; i < l; i++){
+               x[i] = Complex(0, 0);
+          }
+          for(int i = len2; i < l; i++){
+               y[i] = Complex(0, 0);
+          }
+          FFT(x, l, 1);
+          FFT(y, l, 1);
+          for(int i = 0; i < l; i++){
+               x[i] = x[i] * y[i];
+          }
+          FFT(x, l, -1);
+          memset(ans, 0, sizeof(ans));
+          int f = 0;
+          for(int i = 0; i < l; i++){
+               int tmp = int(x[i].a + eps) + f;
+               ans[i] = tmp % 10;
+               f = tmp / 10;
+          }
+          int ok = 0;
+          l = len1 + len2;
+          while(ans[l] == 0 && l > 0) l--;
+          for(int i = l; i >= 0; i--){
+               printf("%d", ans[i]);
+          }
+          printf("\n");
+     }
+     return 0;
+}
